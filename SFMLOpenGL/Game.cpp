@@ -12,25 +12,28 @@ GLuint	vsid,		// Vertex Shader ID
 		colorID,	// Color ID
 		textureID,	// Texture ID
 		uvID,		// UV ID
-		mvpID;		// Model View Projection ID
+		mvpID;		// Model viewL Projection ID
 
 //const string filename = "coordinates.tga";
 //const string filename = "cube.tga";
 //const string filename = "grid.tga";
 //const string filename = "grid_wip.tga";
 //const string filename = "minecraft.tga";
-const string filename = "texture.tga";
+const string filename = "frame.tga";
+const string filename2 = "texture_2.tga";
 //const string filename = "texture_2.tga";
 //const string filename = "uvtemplate.tga";
 
-
+float floatx;
+float floaty;
+float floatz;
 int width;			// Width of texture
 int height;			// Height of texture
 int comp_count;		// Component of texture
 sf::Mouse mouse;
 unsigned char* img_data;		// image data
 
-mat4 mvp, projection, view, model;			// Model View Projection
+mat4 mvp, projection, viewL, viewR, model, model2;			// Model viewL Projection
 
 Game::Game() : 
 	window(VideoMode(800, 600), 
@@ -71,26 +74,28 @@ void Game::run()
 			
 			else if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
 			{
-				// Set Model Rotation
-				model = rotate(model, 0.03f, glm::vec3(0, 1, 0)); // Rotate
+				//floatx += 0.2f;
+				viewL = rotate(viewL, -0.01f, vec3(0, 1, 0));
+				viewR = rotate(viewR, -0.01f, vec3(0, 1, 0));
 			}
 
 			else if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
 			{
-				// Set Model Rotation
-				model = rotate(model, -0.03f, glm::vec3(0, 1, 0)); // Rotate
+				//floatx -= 0.2f;
+				viewL = rotate(viewL, 0.01f, vec3(0, 1, 0));
+				viewR = rotate(viewR, 0.01f, vec3(0, 1, 0));
 			}
 
 			else if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
 			{
-				// Set Model Rotation
-				model = rotate(model, -0.03f, glm::vec3(1, 0, 0)); // Rotate
+				viewL = rotate(viewL, -0.01f, vec3(0, 0, 1));
+				viewR = rotate(viewR, -0.01f, vec3(0, 0, 1));
 			}
 
 			else if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
 			{
-				// Set Model Rotation
-				model = rotate(model, 0.03f, glm::vec3(1, 0, 0)); // Rotate
+				viewL = rotate(viewL, 0.01f, vec3(0, 0, 1));
+				viewR = rotate(viewR, 0.01f, vec3(0, 0, 1));
 			}
 		}
 		update();
@@ -112,6 +117,10 @@ void Game::initialize()
 
 	glewInit();
 
+
+	floatx = 0.0f;
+	floaty = 0.0f;
+	floatz = 0.0f;
 	//Copy UV's to all faces
 	for (int i = 1; i < 6; i++)
 		memcpy(&uvs[i * 4 * 2], &uvs[0], 2 * 4 * sizeof(GLfloat));
@@ -243,8 +252,8 @@ void Game::initialize()
 	}
 
 	glEnable(GL_TEXTURE_2D);
-	glGenTextures(1, &to);
-	glBindTexture(GL_TEXTURE_2D, to);
+	glGenTextures(2, &to);
+	glBindTexture(GL_TEXTURE_2D, 0);
 
 	//Wrap around
 	//https://www.khronos.org/opengles/sdk/docs/man/xhtml/glTexParameter.xml
@@ -269,6 +278,39 @@ void Game::initialize()
 		GL_UNSIGNED_BYTE,	//Specifies Data type of image data
 		img_data				//Image Data
 		);
+	/*---------------------------------------------- SECOND TEXTURE ------------------------------------------------*/
+	img_data = stbi_load(filename2.c_str(), &width, &height, &comp_count, 4);
+
+	if (img_data == NULL)
+	{
+		DEBUG_MSG("ERROR: Texture not loaded");
+	}
+
+	glBindTexture(GL_TEXTURE_2D, 1);
+
+	//Wrap around
+	//https://www.khronos.org/opengles/sdk/docs/man/xhtml/glTexParameter.xml
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
+	//Filtering
+	//https://www.khronos.org/opengles/sdk/docs/man/xhtml/glTexParameter.xml
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	//Bind to OpenGL
+	//https://www.khronos.org/opengles/sdk/docs/man/xhtml/glTexImage2D.xml
+	glTexImage2D(
+		GL_TEXTURE_2D,		//2D Texture Image
+		0,					//Mipmapping Level 
+		GL_RGBA,			//GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA, GL_RGB, GL_BGR, GL_RGBA 
+		width,				//Width
+		height,				//Height
+		0,					//Border
+		GL_RGBA,			//Bitmap
+		GL_UNSIGNED_BYTE,	//Specifies Data type of image data
+		img_data				//Image Data
+	);
 
 	// Find variables in the shader
 	//https://www.khronos.org/opengles/sdk/docs/man/xhtml/glGetAttribLocation.xml
@@ -280,24 +322,31 @@ void Game::initialize()
 
 	// Projection Matrix 
 	projection = perspective(
-		45.0f,					// Field of View 45 degrees
-		3.0f / 3.0f,			// Aspect ratio
+		45.0F,					// Field of viewL 45 degrees
+		2.0f / 3.0f,			// Aspect ratio
 		5.0f,					// Display Range Min : 0.1f unit
 		100.0f					// Display Range Max : 100.0f unit
 		);
 
-	// Camera Matrix
-	view = lookAt(
-		vec3(0.0f, 4.0f, 10.0f),	// Camera (x,y,z), in World Space
-		vec3(0.0f, 0.0f, 0.0f),	// Camera looking at origin
-		vec3(0.0f, 1.0f, 0.0f)	// 0.0f, 1.0f, 0.0f Look Down and 0.0f, -1.0f, 0.0f Look Up
-		);
-
+	
 	// Model matrix
 	model = mat4(
 		1.0f					// Identity Matrix
 		);
+	// Model matrix
+	model2 = mat4(
+		1.0f					// Identity Matrix
+	);
+	viewL = mat4(
+		1.0f					// Identity Matrix
+	);
+	viewR = mat4(
+		1.0f					// Identity Matrix
+	);
 
+	model = translate(model, vec3(0, 0, -20));
+	model2 = glm::translate(model2, vec3(0, -2, 0));
+	model2 = glm::scale(model2, vec3(100, 0, 100));
 	// Enable Depth Test
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
@@ -309,8 +358,22 @@ void Game::update()
 #if (DEBUG >= 2)
 	DEBUG_MSG("Updating...");
 #endif
-	// Update Model View Projection
-	mvp = projection * view * model;
+	//// Camera Matrix
+	//viewL = lookAt(
+	//	vec3(10.0f, 4.0f, 5.0f),	// Camera (x,y,z), in World Space
+	//	vec3(floatx, floaty, floatz),	// Camera looking at origin
+	//	vec3(0.0f, 1.0f, 0.0f)	// 0.0f, 1.0f, 0.0f Look Down and 0.0f, -1.0f, 0.0f Look Up
+	//);
+	//// Camera Matrix
+	//viewR = lookAt(
+	//	vec3(10.0f, 4.0f, 5.0f),	// Camera (x,y,z), in World Space
+	//	vec3(floatx, floaty, floatz),	// Camera looking at origin
+	//	vec3(0.0f, 1.0f, 0.0f)	// 0.0f, 1.0f, 0.0f Look Down and 0.0f, -1.0f, 0.0f Look Up
+	//);
+
+	model = rotate(model, 0.0003f, glm::vec3(0, 1, 0)); // Rotate
+	model = rotate(model, 0.0003f, glm::vec3(1, 0, 0)); // Rotate
+	model = rotate(model, 0.0003f, glm::vec3(0, 0, 1)); // Rotate
 }
 
 void Game::render()
@@ -325,11 +388,11 @@ void Game::render()
 	
 
 
-	glViewport(400, 100, 400, 400);
+	glViewport(400, 0, 400, 600);
 	glLoadIdentity();
-	gluLookAt(5.0f, 5.0f, 5.0f,
-		0.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f);
+
+	// Update Model viewL Projection
+	mvp = projection * viewL * model;
 	//VBO Data....vertices, colors and UV's appended
 	glBufferSubData(GL_ARRAY_BUFFER, 0 * VERTICES * sizeof(GLfloat), 3 * VERTICES * sizeof(GLfloat), vertices);
 	glBufferSubData(GL_ARRAY_BUFFER, 3 * VERTICES * sizeof(GLfloat), 4 * COLORS * sizeof(GLfloat), colors);
@@ -339,7 +402,7 @@ void Game::render()
 	glUniformMatrix4fv(mvpID, 1, GL_FALSE, &mvp[0][0]);
 
 	//Set Active Texture .... 32
-	glActiveTexture(GL_TEXTURE0);
+	glActiveTexture(GL_TEXTURE0 + 0);
 	glUniform1i(textureID, 0);
 
 	//Set pointers for each parameter (with appropriate starting positions)
@@ -355,14 +418,70 @@ void Game::render()
 	glDrawElements(GL_TRIANGLES, 3 * INDICES, GL_UNSIGNED_INT, NULL);
 
 
-	glViewport(0, 100, 400, 400);
+	glViewport(0, 0, 400, 600);
+	glLoadIdentity();
+
+	// Update Model viewL Projection
+	mvp = projection * viewR * model;
+	//VBO Data....vertices, colors and UV's appended
+	glBufferSubData(GL_ARRAY_BUFFER, 0 * VERTICES * sizeof(GLfloat), 3 * VERTICES * sizeof(GLfloat), vertices);
+	glBufferSubData(GL_ARRAY_BUFFER, 3 * VERTICES * sizeof(GLfloat), 4 * COLORS * sizeof(GLfloat), colors);
+	glBufferSubData(GL_ARRAY_BUFFER, ((3 * VERTICES) + (4 * COLORS)) * sizeof(GLfloat), 2 * UVS * sizeof(GLfloat), uvs);
+
+	// Send transformation to shader mvp uniform
+	glUniformMatrix4fv(mvpID, 1, GL_FALSE, &mvp[0][0]);
+	glDrawElements(GL_TRIANGLES, 3 * INDICES, GL_UNSIGNED_INT, NULL);
+	
+
+	//Disable Arrays
+	glDisableVertexAttribArray(positionID);
+	glDisableVertexAttribArray(colorID);
+	glDisableVertexAttribArray(uvID);
+
+	glMatrixMode(GL_PROJECTION);
+	/*--------------------------------------PLANE viewL------------------------------------------------------*/
+	// Update Model viewL Projection
+	mvp = projection * viewL * model2;
+
+
+	glViewport(400, 0, 400, 600);
 	glLoadIdentity();
 	gluLookAt(5.0f, 5.0f, 5.0f,
 		0.0f, 0.0f, 0.0f,
 		0.0f, 1.0f, 0.0f);
-	
+	//VBO Data....vertices, colors and UV's appended
+	glBufferSubData(GL_ARRAY_BUFFER, 0 * VERTICES * sizeof(GLfloat), 3 * VERTICES * sizeof(GLfloat), vertices);
+	glBufferSubData(GL_ARRAY_BUFFER, 3 * VERTICES * sizeof(GLfloat), 4 * COLORS * sizeof(GLfloat), colors);
+	glBufferSubData(GL_ARRAY_BUFFER, ((3 * VERTICES) + (4 * COLORS)) * sizeof(GLfloat), 2 * UVS * sizeof(GLfloat), uvs);
+
+	// Send transformation to shader mvp uniform
+	glUniformMatrix4fv(mvpID, 1, GL_FALSE, &mvp[0][0]);
+
+	//Set Active Texture .... 32
+	glActiveTexture(GL_TEXTURE0 + 1);
+	glUniform1i(textureID, 1);
+
+	//Set pointers for each parameter (with appropriate starting positions)
+	//https://www.khronos.org/opengles/sdk/docs/man/xhtml/glVertexAttribPointer.xml
+	glVertexAttribPointer(positionID, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	glVertexAttribPointer(colorID, 4, GL_FLOAT, GL_FALSE, 0, (VOID*)(3 * VERTICES * sizeof(GLfloat)));
+	glVertexAttribPointer(uvID, 2, GL_FLOAT, GL_FALSE, 0, (VOID*)(((3 * VERTICES) + (4 * COLORS)) * sizeof(GLfloat)));
+
+	//Enable Arrays
+	glEnableVertexAttribArray(positionID);
+	glEnableVertexAttribArray(colorID);
+	glEnableVertexAttribArray(uvID);
 	glDrawElements(GL_TRIANGLES, 3 * INDICES, GL_UNSIGNED_INT, NULL);
-	
+
+
+	glViewport(0, 0, 400, 600);
+	glLoadIdentity();
+	gluLookAt(5.0f, 5.0f, 5.0f,
+		0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f);
+
+	glDrawElements(GL_TRIANGLES, 3 * INDICES, GL_UNSIGNED_INT, NULL);
+
 
 	//Disable Arrays
 	glDisableVertexAttribArray(positionID);
