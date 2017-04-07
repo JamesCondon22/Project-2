@@ -15,13 +15,13 @@ GLuint	vsid,		// Vertex Shader ID
 		mvpID;		// Model viewL Projection ID
 
 //const string filename = "coordinates.tga";
-//const string filename = "cube.tga";
+//const string filenam= "cube.tga";
 //const string filename = "grid.tga";
 //const string filename = "grid_wip.tga";
 //const string filename = "minecraft.tga";
 const string filename = "frame.tga";
-const string filename2 = "texture_2.tga";
-//const string filename = "texture_2.tga";
+//const string filename2 = "texture_2.tga";
+const string filename2 = "texture.tga";
 //const string filename = "uvtemplate.tga";
 
 float floatx;
@@ -97,6 +97,29 @@ void Game::run()
 				viewL = rotate(viewL, 0.01f, vec3(0, 0, 1));
 				viewR = rotate(viewR, 0.01f, vec3(0, 0, 1));
 			}
+		}
+		if (/*mouse.getPosition().x > 0 && */mouse.getPosition(window).y < 250)
+		{
+			viewL = rotate(viewL, 0.0004f, vec3(0, 0, 1));
+			viewR = rotate(viewR, 0.0004f, vec3(0, 0, 1));
+		}
+		if (/*mouse.getPosition().x > 0 && */mouse.getPosition(window).y > 350)
+		{
+			viewL = rotate(viewL, -0.0004f, vec3(0, 0, 1));
+			viewR = rotate(viewR, -0.0004f, vec3(0, 0, 1));
+		}
+		if (mouse.getPosition(window).x < 350)
+		{
+			//floatx += 0.2f;
+			viewL = rotate(viewL, -0.0004f, vec3(0, 1, 0));
+			viewR = rotate(viewR, -0.0004f, vec3(0, 1, 0));
+		}
+
+		if (mouse.getPosition(window).x > 450)
+		{
+			//floatx -= 0.2f;
+			viewL = rotate(viewL, 0.0004f, vec3(0, 1, 0));
+			viewR = rotate(viewR, 0.0004f, vec3(0, 1, 0));
 		}
 		update();
 		render();
@@ -347,6 +370,8 @@ void Game::initialize()
 	model = translate(model, vec3(0, 0, -20));
 	model2 = glm::translate(model2, vec3(0, -2, 0));
 	model2 = glm::scale(model2, vec3(100, 0, 100));
+
+	mouse.setPosition(sf::Vector2i(window.getPosition().x + 408, window.getPosition().y + 330));
 	// Enable Depth Test
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
@@ -374,6 +399,10 @@ void Game::update()
 	model = rotate(model, 0.0003f, glm::vec3(0, 1, 0)); // Rotate
 	model = rotate(model, 0.0003f, glm::vec3(1, 0, 0)); // Rotate
 	model = rotate(model, 0.0003f, glm::vec3(0, 0, 1)); // Rotate
+
+	std::cout << mouse.getPosition(window).x << ", " << mouse.getPosition(window).y << std::endl;
+	
+
 }
 
 void Game::render()
@@ -441,7 +470,7 @@ void Game::render()
 	glMatrixMode(GL_PROJECTION);
 	/*--------------------------------------PLANE viewL------------------------------------------------------*/
 	// Update Model viewL Projection
-	mvp = projection * viewL * model2;
+	mvp = projection * viewR * model2;
 
 
 	glViewport(400, 0, 400, 600);
@@ -476,9 +505,9 @@ void Game::render()
 
 	glViewport(0, 0, 400, 600);
 	glLoadIdentity();
-	gluLookAt(5.0f, 5.0f, 5.0f,
+	/*gluLookAt(5.0f, 5.0f, 5.0f,
 		0.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f);
+		0.0f, 1.0f, 0.0f);*/
 
 	glDrawElements(GL_TRIANGLES, 3 * INDICES, GL_UNSIGNED_INT, NULL);
 
