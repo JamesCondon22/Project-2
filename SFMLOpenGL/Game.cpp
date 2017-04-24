@@ -100,13 +100,13 @@ void Game::run()
 		}
 		if (/*mouse.getPosition().x > 0 && */mouse.getPosition(window).y < 250)
 		{
-			viewL = rotate(viewL, 0.0004f, vec3(0, 0, 1));
-			viewR = rotate(viewR, 0.0004f, vec3(0, 0, 1));
+			viewL = rotate(viewL, -0.0004f, vec3(1, 0, 0));
+			viewR = rotate(viewR, -0.0004f, vec3(1, 0, 0));
 		}
 		if (/*mouse.getPosition().x > 0 && */mouse.getPosition(window).y > 350)
 		{
-			viewL = rotate(viewL, -0.0004f, vec3(0, 0, 1));
-			viewR = rotate(viewR, -0.0004f, vec3(0, 0, 1));
+			viewL = rotate(viewL, 0.0004f, vec3(1, 0, 0));
+			viewR = rotate(viewR, 0.0004f, vec3(1, 0, 0));
 		}
 		if (mouse.getPosition(window).x < 350)
 		{
